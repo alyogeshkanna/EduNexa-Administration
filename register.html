@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EduNexa - Main</title>
+  <link rel="icon" href="/static/img/LOGO.png" type="image/png" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/Reg.css" />
+</head>
+<body>
+<input type="checkbox" id="toggleSidebar" hidden />
+
+<div class="d-flex">
+  <div id="sidebar" class="sidebar bg-dark text-white p-3">
+    <h5 class="text-center fw-bold mb-3">🏤 ADMINISTRATION</h5>
+    <hr class="border-secondary my-2" />
+    <ul class="nav flex-column mt-3">
+      <li class="nav-item"><a class="nav-link text-white active" href="{{ url_for('index') }}">Registration</a></li>
+      <li class="nav-item"><a class="nav-link text-white" href="/students">Students List</a></li>
+      <li class="nav-item"><a class="nav-link text-white" href="/fee_payment">Fee Payment</a></li>
+      <li class="nav-item"><a class="nav-link text-white" href="/view_payments">View Payments</a></li>
+      <li class="nav-item"><a class="nav-link text-white" href="/attendance">Attendance</a></li>
+      <li class="nav-item">
+        <a class="nav-link text-white d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#courseDropdown" role="button">
+          Course Management <i class="fas fa-chevron-down"></i>
+        </a>
+        <ul class="collapse show list-unstyled ps-3" id="courseDropdown">
+          <li><a class="nav-link text-white" href="courses.html">Add Course</a></li>
+          <li><a class="nav-link text-white" href="courselist.html">List Of Course</a></li>
+        </ul>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#batchdropdown" role="button" aria-expanded="true" aria-controls="batchdropdown">
+          Batch Management
+        </a>
+        <ul class="collapse show list-unstyled ps-3" id="batchdropdown">
+          <li><a class="nav-link text-white" href="{{ url_for('batches_page') }}">Add Batch</a></li>
+          <li><a class="nav-link text-white" href="{{ url_for('batchlist_page') }}">List Of Batches</a></li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <div id="main-content" class="flex-grow-1">
+    <nav class="navbar navbar-dark bg-dark fixed-top custom-navbar">
+      <div class="container-fluid">
+        <label for="toggleSidebar" class="btn btn-outline-light me-3 mb-0">&#9776;</label>
+        <a class="navbar-brand" href="#">
+          <img src="/static/img/NAVLOGO.png" alt="EduNexa Logo" width="30" height="30" class="me-2" /> EduNexa
+        </a>
+      </div>
+    </nav>
+
+    <div class="container form-container pt-5 mt-5">
+      <div class="registration-box bg-light p-4 rounded shadow">
+        <h3 id="form-heading" class="mb-4 text-center text-primary">Student Registration & Course Selection</h3>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="alert-container">
+          {% for category, message in messages %}
+          <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div id="existing-student-section" class="mb-4">
+          <div class="row">
+            <div class="col-md-6 offset-md-3">
+              <label for="searchPhone" class="form-label">Phone Number (For Existing Student)</label>
+              <input placeholder="Enter Existing Student No." type="tel" id="searchPhone" name="searchPhone" class="form-control" pattern="\d{10}" maxlength="10" inputmode="numeric" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10);" required />
+              <div class="invalid-feedback">Please enter a valid 10-digit phone number</div>
+            </div>
+          </div>
+          <div class="text-center mt-3">
+            <button type="button" class="btn btn-success" onclick="fetchStudentByPhone()">Fetch Student</button>
+          </div>
+          <hr class="my-4" />
+        </div>
+
+        <form id="registrationForm" action="{{ url_for('register') }}" method="POST" novalidate>
+          <input type="hidden" id="studentId" name="student_id" />
+          
+          <div class="mb-3">
+            <label for="name" class="form-label">Full Name</label>
+            <input type="text"
+                  id="name"
+                  name="full_name"
+                  class="form-control"
+                  pattern="^[A-Za-z\s.]+$"
+                  oninput="this.value = this.value.replace(/[^A-Za-z\s.]/g, '')"
+                  required />
+            <div class="invalid-feedback">Please enter a valid name (letters and '.' only)</div>
+          </div>
+
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Gender <span class="text-danger">*</span></label>
+              <div class="d-flex">
+                <div class="form-check me-3">
+                  <input class="form-check-input" type="radio" name="gender" id="male" value="Male" required>
+                  <label class="form-check-label" for="male">Male</label>
+                </div>
+                <div class="form-check me-3">
+                  <input class="form-check-input" type="radio" name="gender" id="female" value="Female" required>
+                  <label class="form-check-label" for="female">Female</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="gender" id="others" value="Others" required>
+                  <label class="form-check-label" for="others">Others</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="dob" class="form-label">Date of Birth</label>
+              <input type="date" id="dob" name="dob" class="form-control" required />
+              <div class="invalid-feedback">Please select date of birth</div>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="email" class="form-label">Email</label>
+              <input type="email"
+                    id="email"
+                    name="email"
+                    class="form-control"
+                    pattern="^[^\s@]+@[^\s@]+\.[^\s@]{2,}$"
+                    required />
+              <div class="invalid-feedback">Please enter a valid email (e.g., name@example.com)</div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="phone" class="form-label">Phone Number</label>
+              <input type="tel" 
+                    id="phone" 
+                    name="phone" 
+                    class="form-control" 
+                    pattern="\d{10}" 
+                    inputmode="numeric" 
+                    maxlength="10"
+                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10);" 
+                    required />
+              <div class="invalid-feedback">Please enter a valid 10-digit phone number</div>
+            </div>
+
+          </div>
+
+          <div class="mb-3">
+            <label for="standard" class="form-label">Standard (From Class VIII-XII)</label>
+            <select id="standard" name="standard" class="form-select" required>
+              <option value="" selected disabled>Choose Standard</option>
+              <option value="8">8th Standard</option>
+              <option value="9">9th Standard</option>
+              <option value="10">10th Standard</option>
+              <option value="11">11th Standard</option>
+              <option value="12">12th Standard</option>
+            </select>
+          </div>
+
+          <hr />
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="batch" class="form-label">Batch</label>
+              <select class="form-select" id="batch" name="batch_id" required>
+                <option selected disabled value="">Choose...</option>
+                {% for batch in batches %}
+                  <option value="{{ batch[0] }}">{{ batch[1] }}</option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback">Please select a batch</div>
+            </div>
+            <div class="col-md-6">
+              <label for="course" class="form-label">Course</label>
+              <select class="form-select" id="course" name="course_id" onchange="updateCourseFee()" required>
+                <option selected disabled value="">Choose...</option>
+                {% for course in courses %}
+                  <option value="{{ course[0] }}" data-fee="{{ course[2] }}">{{ course[1] }}</option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback">Please select a course</div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label for="courseFee" class="form-label">Course Fee</label>
+            <input type="number" class="form-control" id="courseFee" readonly>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center">
+            <button type="submit" class="btn btn-primary px-4">Submit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function fetchStudentByPhone() {
+  const phone = document.getElementById('searchPhone').value.trim();
+  if (!/^\d{10}$/.test(phone)) {
+    alert("Please enter a valid 10-digit phone number.");
+    return;
+  }
+
+  fetch(`/search_student_by_phone?phone=${phone}`)
+    .then(response => response.json())
+    .then(data => {
+      if (!data.success) {
+        alert(data.message || "Student not found.");
+        return;
+      }
+
+      const studentData = data.student;
+      document.getElementById("studentId").value = studentData.student_id;
+      document.getElementById("name").value = studentData.full_name;
+      document.getElementById("dob").value = studentData.dob;
+      document.getElementById("email").value = studentData.email;
+      document.getElementById("phone").value = studentData.phone;
+
+      const genderRadios = document.querySelectorAll('input[name="gender"]');
+      genderRadios.forEach(radio => {
+        radio.checked = radio.value.toLowerCase() === studentData.gender.toLowerCase();
+      });
+
+      document.getElementById("standard").value = studentData.standard;
+      document.getElementById("batch").value = studentData.batch_id;
+      document.getElementById("course").value = studentData.course_id;
+
+      updateCourseFee();
+      alert("Student details fetched successfully!");
+    })
+    .catch(error => {
+      console.error("Fetch student error:", error);
+      alert("Failed to fetch student details.");
+    });
+}
+
+function updateCourseFee() {
+  const courseSelect = document.getElementById("course");
+  const selectedOption = courseSelect.options[courseSelect.selectedIndex];
+  const fee = selectedOption ? selectedOption.getAttribute("data-fee") : "";
+  document.getElementById("courseFee").value = fee || "";
+}
+
+// Auto-hide flash messages
+document.addEventListener('DOMContentLoaded', function() {
+  const alertElements = document.querySelectorAll('.alert');
+  alertElements.forEach(function(alertEl) {
+    new bootstrap.Alert(alertEl);
+    setTimeout(function() {
+      bootstrap.Alert.getInstance(alertEl)?.close();
+    }, 5000);
+  });
+});
+</script>
+</body>
+</html>
