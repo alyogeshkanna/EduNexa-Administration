@@ -1,0 +1,2 @@
+# EduNexa-Administration
+Student management
