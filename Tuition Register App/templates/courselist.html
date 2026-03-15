@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EduNexa - Course List</title>
+  <link rel="icon" href="static/img/LOGO.png" type="image/png" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="static/css/Reg.css" />
+</head>
+<body>
+
+<input type="checkbox" id="toggleSidebar" hidden />
+<div class="d-flex">
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="sidebar bg-dark text-white p-3">
+    <h5 class="text-center fw-bold mb-3">🏤 ADMINISTRATION</h5>
+    <hr class="border-secondary my-2" />
+    <ul class="nav flex-column mt-3">
+      <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('index') }}">Registration</a></li>
+      <li class="nav-item"><a class="nav-link text-white" href="/students">Students List</a></li>
+      <li class="nav-item"><a class="nav-link text-white" href="/fee_payment">Fee Payment</a></li>
+      <li class="nav-item"><a class="nav-link text-white" href="/view_payments">View Payments</a></li>
+      <li class="nav-item"><a class="nav-link text-white" href="/attendance">Attendance</a></li>
+      <li class="nav-item">
+        <a class="nav-link text-white d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#courseDropdown" role="button">
+          Course Management <i class="fas fa-chevron-down"></i>
+        </a>
+        <ul class="collapse show list-unstyled ps-3" id="courseDropdown">
+          <li><a class="nav-link text-white" href="courses.html">Add Course</a></li>
+          <li><a class="nav-link text-white active" href="courselist.html">List Of Course</a></li>
+        </ul>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#batchdropdown" role="button" aria-expanded="true" aria-controls="batchdropdown">
+          Batch Management
+        </a>
+        <ul class="collapse show list-unstyled ps-3" id="batchdropdown">
+          <li><a class="nav-link text-white" href="{{ url_for('batches_page') }}">Add Batch</a></li>
+          <li><a class="nav-link text-white" href="{{ url_for('batchlist_page') }}">List Of Batches</a></li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main-content" class="flex-grow-1">
+    <nav class="navbar navbar-dark bg-dark fixed-top custom-navbar">
+      <div class="container-fluid">
+        <label for="toggleSidebar" class="btn btn-outline-light me-3 mb-0">&#9776;</label>
+        <a class="navbar-brand" href="#">
+          <img src="static/img/NAVLOGO.png" alt="EduNexa Logo" width="30" height="30" class="me-2" /> EduNexa
+        </a>
+      </div>
+    </nav>
+
+    <div class="container mt-5 pt-5">
+      <div class="registration-box bg-light p-4 rounded shadow">
+        <h3 class="text-primary text-center mb-4">List of Courses</h3>
+
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped text-center align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>Course ID</th>
+                <th>Course Name</th>
+                <th>Subject</th>
+                <th>Duration (Months)</th>
+                <th>Fee</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="courseTableBody">
+              <!-- Filled dynamically by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  window.onload = loadCourses;
+
+  function loadCourses() {
+    fetch('/api/get-courses')
+      .then(res => res.json())
+      .then(data => {
+        const tbody = document.getElementById('courseTableBody');
+        tbody.innerHTML = '';
+
+        if (data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6">No courses found</td></tr>';
+        } else {
+          data.forEach(course => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${course.course_id}</td>
+              <td contenteditable="true" class="editable" data-field="course_name">${course.course_name}</td>
+              <td contenteditable="true" class="editable" data-field="subject">${course.subject}</td>
+              <td contenteditable="true" class="editable" data-field="duration_in_months">${course.duration_in_months}</td>
+              <td contenteditable="true" class="editable" data-field="fee">${course.fee}</td>
+              <td>
+                <button class="btn btn-sm btn-success save-btn" data-id="${course.course_id}">Save</button>
+                <button class="btn btn-sm btn-danger delete-btn" data-id="${course.course_id}">Delete</button>
+              </td>
+            `;
+            tbody.appendChild(row);
+          });
+          attachCourseEventListeners();
+        }
+      })
+      .catch(error => {
+        document.getElementById('courseTableBody').innerHTML = '<tr><td colspan="6">Error loading data</td></tr>';
+      });
+  }
+
+  function attachCourseEventListeners() {
+    document.querySelectorAll('.save-btn').forEach(btn => {
+      btn.removeEventListener('click', handleCourseSaveClick);
+      btn.addEventListener('click', handleCourseSaveClick);
+    });
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.removeEventListener('click', handleCourseDeleteClick);
+      btn.addEventListener('click', handleCourseDeleteClick);
+    });
+  }
+
+  function handleCourseSaveClick() {
+    const courseId = this.getAttribute('data-id');
+    const row = this.closest('tr');
+    const data = {
+      course_id: courseId,
+      course_name: row.querySelector('[data-field="course_name"]').innerText.trim(),
+      subject: row.querySelector('[data-field="subject"]').innerText.trim(),
+      duration_in_months: parseInt(row.querySelector('[data-field="duration_in_months"]').innerText.trim()),
+      fee: parseFloat(row.querySelector('[data-field="fee"]').innerText.trim())
+    };
+
+    fetch('/api/update-course', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(res => res.ok ? res.json() : res.json().then(err => { throw new Error(err.message); }))
+    .then(result => {
+      alert(result.message);
+      loadCourses();
+    })
+    .catch(error => alert("Update failed: " + error.message));
+  }
+
+  function handleCourseDeleteClick() {
+    const courseId = this.getAttribute('data-id');
+    if (confirm("Are you sure you want to delete this course?")) {
+      fetch(`/api/delete-course/${courseId}`, { method: 'DELETE' })
+        .then(res => res.ok ? res.json() : res.json().then(err => { throw new Error(err.message); }))
+        .then(result => {
+          alert(result.message);
+          loadCourses();
+        })
+        .catch(error => alert("Delete failed: " + error.message));
+    }
+  }
+</script>
+</body>
+</html>
